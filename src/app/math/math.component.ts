@@ -1,12 +1,13 @@
 import {Component} from '@angular/core';
 import {FormGroup, FormBuilder, FormArray, ReactiveFormsModule, Validators} from '@angular/forms';
+import {GraphComponent} from '../graph/graph.component';
 
 @Component({
   selector: 'app-math',
   templateUrl: './math.component.html',
   styleUrls: ['./math.component.css'],
   standalone: true,
-  imports: [ReactiveFormsModule]
+  imports: [ReactiveFormsModule, GraphComponent]
 })
 export class MathComponent {
   mathForm: FormGroup;

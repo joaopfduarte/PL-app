@@ -103,3 +103,8 @@
     </div>
   </div>
 </div>
+
+<app-graph
+  [constraints]="mathForm.get('constraints')?.value"
+  [objective]="mathForm.get('objective')?.value">
+</app-graph>
