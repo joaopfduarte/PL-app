@@ -12,21 +12,23 @@
 
     <div class="mb-4">
       <h4 class="text-secondary">Função objetivo:</h4>
-      <div class="row align-items-center mt-3">
-        <div class="col-auto">
-          <span>Z =</span>
-        </div>
-        <div class="col-auto">
-          <input type="number" id="z-x1" formControlName="zx1" class="form-control" placeholder="Coef. x1">
-        </div>
-        <div class="col-auto">
-          <span>x<sub>1</sub> +</span>
-        </div>
-        <div class="col-auto">
-          <input type="number" id="z-x2" formControlName="zx2" class="form-control" placeholder="Coef. x2">
-        </div>
-        <div class="col-auto">
-          <span>x<sub>2</sub></span>
+      <div formGroupName="objective">
+        <div class="row align-items-center mt-3">
+          <div class="col-auto">
+            <span>Z =</span>
+          </div>
+          <div class="col-auto">
+            <input type="number" id="z-x1" formControlName="zx1" class="form-control" placeholder="Coef. x1">
+          </div>
+          <div class="col-auto">
+            <span>x<sub>1</sub> +</span>
+          </div>
+          <div class="col-auto">
+            <input type="number" id="z-x2" formControlName="zx2" class="form-control" placeholder="Coef. x2">
+          </div>
+          <div class="col-auto">
+            <span>x<sub>2</sub></span>
+          </div>
         </div>
       </div>
     </div>
@@ -35,15 +37,26 @@
       <h4 class="text-secondary">Restrições:</h4>
 
       <div formArrayName="constraints" class="mt-3">
-        <div *ngFor="let constraint of constraints.controls; let i = index" [formGroupName]="i" class="row g-3 mb-2 align-items-center">
+        <div *ngFor="let constraint of constraints.controls; let i = index" [formGroupName]="i"
+             class="row g-3 mb-2 align-items-center">
           <div class="col-auto">
-            <input type="number" formControlName="x1" class="form-control" placeholder="Coef. x1">
+            <input
+              type="number"
+              formControlName="coefX1"
+              class="form-control"
+              placeholder="x1"
+            >
           </div>
           <div class="col-auto">
             <span>x<sub>1</sub> +</span>
           </div>
           <div class="col-auto">
-            <input type="number" formControlName="x2" class="form-control" placeholder="Coef. x2">
+            <input
+              type="number"
+              formControlName="coefX2"
+              class="form-control"
+              placeholder="x2"
+            >
           </div>
           <div class="col-auto">
             <span>x<sub>2</sub></span>
@@ -55,10 +68,20 @@
             </select>
           </div>
           <div class="col-auto">
-            <input type="number" formControlName="constant" class="form-control" placeholder="Constante">
+            <input
+              type="number"
+              formControlName="constant"
+              class="form-control"
+              placeholder="constante"
+            >
           </div>
           <div class="col-auto">
-            <button type="button" class="btn btn-danger btn-sm" (click)="removeConstraint(i)" *ngIf="i > 0">
+            <button
+              type="button"
+              class="btn btn-danger btn-sm"
+              (click)="removeConstraint(i)"
+              *ngIf="i > 0"
+            >
               Remover
             </button>
           </div>
@@ -84,20 +107,20 @@
       <h4 class="text-success">Resultado:</h4>
       <table class="table table-striped">
         <thead>
-          <tr>
-            <th>Iteração</th>
-            <th>X<sub>1</sub></th>
-            <th>X<sub>2</sub></th>
-            <th>Resultado</th>
-          </tr>
+        <tr>
+          <th>Iteração</th>
+          <th>X<sub>1</sub></th>
+          <th>X<sub>2</sub></th>
+          <th>Resultado</th>
+        </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of tableData" [class.table-success]="row.isOptimal">
-            <td>{{ row.iteration }}</td>
-            <td>{{ row.x1 }}</td>
-            <td>{{ row.x2 }}</td>
-            <td>{{ row.z }}</td>
-          </tr>
+        <tr *ngFor="let row of tableData" [class.table-success]="row.isOptimal">
+          <td>{{ row.iteration }}</td>
+          <td>{{ row.x1 }}</td>
+          <td>{{ row.x2 }}</td>
+          <td>{{ row.z }}</td>
+        </tr>
         </tbody>
       </table>
     </div>

@@ -93,7 +93,7 @@ export class GraphComponent implements OnChanges {
 
   private getObjectiveLine(objective: any) {
     const points = [];
-    const z = 100; // Exemplo de linha para Z
+    const z = 100;
     const x1Intercept = z / objective['zx1'];
     const x2Intercept = z / objective['zx2'];
 

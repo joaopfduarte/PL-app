@@ -1,19 +1,38 @@
 import {Component} from '@angular/core';
 import {FormGroup, FormBuilder, FormArray, ReactiveFormsModule, Validators} from '@angular/forms';
 import {GraphComponent} from '../graph/graph.component';
+import {CommonModule} from '@angular/common';
+
+interface Constraint {
+  coefX1: string;
+  coefX2: string;
+  operator: string;
+  constant: string;
+}
 
 @Component({
   selector: 'app-math',
   templateUrl: './math.component.html',
   styleUrls: ['./math.component.css'],
   standalone: true,
-  imports: [ReactiveFormsModule, GraphComponent]
+  imports: [CommonModule, ReactiveFormsModule, GraphComponent]
 })
 export class MathComponent {
   mathForm: FormGroup;
   resultHtml = '';
   tableData: any[] = [];
   solution: { x1: number, x2: number, z: number } | null = null;
+  hasResults: boolean = false;
+  showResults: boolean = false;
+  showTable: boolean = false;
+  showGraph: boolean = false;
+  showForm: boolean = true;
+  showReset: boolean = false;
+  showCalculate: boolean = false;
+  showAddConstraint: boolean = false;
+  showRemoveConstraint: boolean = false;
+  showSolution: boolean = false;
+  showTableHeader: boolean = false;
 
   constructor(private fb: FormBuilder) {
     this.mathForm = this.fb.group({
@@ -54,37 +73,25 @@ export class MathComponent {
   }
 
   calculateSolution() {
+    this.cleanTable();
     if (!this.mathForm.valid) {
       alert('Por favor, preencha todos os campos!');
       return;
     }
+
 
     const formValue = this.mathForm.value;
 
     const objective = {
       zx1: parseFloat(formValue.objective.zx1),
       zx2: parseFloat(formValue.objective.zx2),
-      type: formValue.objective.type.toLowerCase()
+      type: formValue.problemType.toLowerCase()
     };
 
-    const constraints = formValue.constraints.map((c: any) => ({
-      x: parseFloat(c.coefX1),
-      y: parseFloat(c.coefX2),
-      type: c.operator,
-      rhs: parseFloat(c.constant)
-    }));
+    const constraints = this.getConstraints();
+    if (!constraints) return;
 
     const points = this.findIntersectionPoints(constraints);
-    const myArray = ["1", "2", "3"];
-    const parsedArray = myArray.map(element => {
-      try {
-        return JSON.parse(element);
-      } catch (e) {
-        console.error(`Erro ao parsear elemento: ${element}`, e);
-        return null;
-      }
-    }).filter(value => value !== null);
-    console.log(parsedArray);
 
     if (points) {
       const uniquePoints = Array.from(
@@ -100,6 +107,10 @@ export class MathComponent {
         z: result.bestValue
       } : null;
 
+
+      this.generateTableData(objective, uniquePoints);
+
+
       this.resultHtml = `
         <h3>Pontos que satisfazem as condições:</h3>
         <p>${uniquePoints.map(p => `(${p[0]}, ${p[1]})`).join(', ')}</p>
@@ -107,9 +118,22 @@ export class MathComponent {
         <p>Ponto de ${valueType}: (${this.solution ? this.solution.x1.toFixed(2) + ', ' + this.solution.x2.toFixed(2) : 'N/A'})</p>
         <p>Valor de Z em ${valueType}: ${this.solution ? this.solution.z.toFixed(2) : 'N/A'}</p>
       `;
-
-      this.generateTableData(objective, uniquePoints);
     }
+
+    const resultSection = document.querySelector('.results-section');
+    if (resultSection) {
+      resultSection.scrollIntoView({behavior: 'smooth'});
+    }
+
+  }
+
+  resetForm() {
+    this.mathForm.reset();
+    this.constraints.clear();
+    this.addConstraint();
+    this.resultHtml = '';
+    this.tableData = [];
+    this.solution = null;
   }
 
   private findIntersectionPoints(constraints: any[]) {
@@ -136,11 +160,10 @@ export class MathComponent {
     }
 
     return points.filter(point =>
-      !(point[0] === 0 && point[1] === 0) &&
+      !(point[0] < 0 || point[1] < 0) &&
       allConstraints.every(c => {
         const value = c.x * point[0] + c.y * point[1];
-        return c.type === '<=' ? value <= c.rhs :
-          c.type === '>=' ? value >= c.rhs : false;
+        return c.type === '<=' ? value <= c.rhs : value >= c.rhs;
       })
     );
   }
@@ -176,16 +199,45 @@ export class MathComponent {
       iteration: index + 1,
       x1: point[0],
       x2: point[1],
-      z: objective.zx1 * point[0] + objective.zx2 * point[1]
+      z: objective.zx1 * point[0] + objective.zx2 * point[1],
+      isOptimal: this.solution
+        ? (point[0] === this.solution.x1 && point[1] === this.solution.x2)
+        : false
     }));
   }
 
-  resetForm() {
-    this.mathForm.reset();
-    this.constraints.clear();
-    this.addConstraint();
-    this.resultHtml = '';
+  getConstraints(): { x: number; y: number; type: string; rhs: number }[] | null {
+
+    const constraints = this.mathForm.get('constraints')?.value.map((c: Constraint) => ({
+      x: parseFloat(c.coefX1),
+      y: parseFloat(c.coefX2),
+      type: c.operator,
+      rhs: parseFloat(c.constant)
+    }));
+
+
+    if (!constraints || constraints.some((c: { x: number; y: number; rhs: number }) =>
+      isNaN(c.x) || isNaN(c.y) || isNaN(c.rhs))) {
+      alert('Preencha todos os campos das restrições corretamente!');
+      return null;
+    }
+
+    return constraints;
+  }
+
+  cleanTable() {
     this.tableData = [];
-    this.solution = null;
+  }
+
+  private getZFunction(): { zx1: number; zx2: number } | null {
+    const zx1 = parseFloat(this.mathForm.get('objective.zx1')?.value);
+    const zx2 = parseFloat(this.mathForm.get('objective.zx2')?.value);
+
+    if (isNaN(zx1) || isNaN(zx2)) {
+      alert('Função Z inválida! Certifique-se de preencher ambos os coeficientes.');
+      return null;
+    }
+
+    return {zx1, zx2};
   }
 }
