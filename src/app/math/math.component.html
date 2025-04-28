@@ -2,14 +2,16 @@
   <h1 class="text-center text-primary mb-4">Calculadora de Programação Linear</h1>
 
   <form [formGroup]="mathForm" class="p-3 border rounded shadow-sm bg-light">
+    <!-- Seção do tipo de problema -->
     <div class="mb-3">
       <p class="fw-bold">Tipo de problema:</p>
-      <select formControlName="problemType" class="form-select">
+      <select formControlName="problemType" class="form-select typeProblem">
         <option value="max">Maximização</option>
         <option value="min">Minimização</option>
       </select>
     </div>
 
+    <!-- Função objetivo -->
     <div class="mb-4">
       <h4 class="text-secondary">Função objetivo:</h4>
       <div formGroupName="objective">
@@ -33,55 +35,35 @@
       </div>
     </div>
 
+    <!-- Restrições -->
     <div id="constraints" class="mb-4">
       <h4 class="text-secondary">Restrições:</h4>
-
       <div formArrayName="constraints" class="mt-3">
         <div *ngFor="let constraint of constraints.controls; let i = index" [formGroupName]="i"
-             class="row g-3 mb-2 align-items-center">
+             class="constraint row g-3 mb-2 align-items-center">
           <div class="col-auto">
-            <input
-              type="number"
-              formControlName="coefX1"
-              class="form-control"
-              placeholder="x1"
-            >
+            <input type="number" formControlName="coefX1" class="form-control coef-x1" placeholder="x1">
           </div>
           <div class="col-auto">
             <span>x<sub>1</sub> +</span>
           </div>
           <div class="col-auto">
-            <input
-              type="number"
-              formControlName="coefX2"
-              class="form-control"
-              placeholder="x2"
-            >
+            <input type="number" formControlName="coefX2" class="form-control coef-x2" placeholder="x2">
           </div>
           <div class="col-auto">
             <span>x<sub>2</sub></span>
           </div>
           <div class="col-auto">
-            <select formControlName="operator" class="form-select">
+            <select formControlName="operator" class="form-select operator">
               <option value="<=">≤</option>
               <option value=">=">≥</option>
             </select>
           </div>
           <div class="col-auto">
-            <input
-              type="number"
-              formControlName="constant"
-              class="form-control"
-              placeholder="constante"
-            >
+            <input type="number" formControlName="constant" class="form-control const" placeholder="constante">
           </div>
           <div class="col-auto">
-            <button
-              type="button"
-              class="btn btn-danger btn-sm"
-              (click)="removeConstraint(i)"
-              *ngIf="i > 0"
-            >
+            <button type="button" class="btn btn-danger btn-sm" (click)="removeConstraint(i)" *ngIf="i > 0">
               Remover
             </button>
           </div>
@@ -93,41 +75,28 @@
       </div>
     </div>
 
-    <p class="text-center text-muted">x<sub>1</sub>, x<sub>2</sub> ≥ 0</p>
-
-    <button type="button" class="btn btn-primary w-100" (click)="calculateSolution()" [disabled]="!mathForm.valid">
+    <button type="button" class="btn btn-primary w-100" (click)="calculateSolution()">
       Resolver
     </button>
   </form>
 
-  <div *ngIf="showResults" class="results-section mt-5">
-    <div id="result" class="alert alert-info" [innerHTML]="resultHtml"></div>
+  <!-- Resultados -->
+  <div class="results-section mt-5">
+    <div id="result" class="alert alert-info"></div>
 
-    <div *ngIf="hasResults" class="mt-4">
-      <h4 class="text-success">Resultado:</h4>
-      <table class="table table-striped">
-        <thead>
+    <table id="tableResult" class="table table-striped" style="display: none;">
+      <thead>
         <tr>
-          <th>Iteração</th>
-          <th>X<sub>1</sub></th>
-          <th>X<sub>2</sub></th>
+          <th>X1</th>
+          <th>X2</th>
           <th>Resultado</th>
         </tr>
-        </thead>
-        <tbody>
-        <tr *ngFor="let row of tableData" [class.table-success]="row.isOptimal">
-          <td>{{ row.iteration }}</td>
-          <td>{{ row.x1 }}</td>
-          <td>{{ row.x2 }}</td>
-          <td>{{ row.z }}</td>
-        </tr>
-        </tbody>
-      </table>
-    </div>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
   </div>
-</div>
 
-<app-graph
-  [constraints]="mathForm.get('constraints')?.value"
-  [objective]="mathForm.get('objective')?.value">
-</app-graph>
+  <!-- Gráfico -->
+  <canvas id="myChart"></canvas>
+</div>

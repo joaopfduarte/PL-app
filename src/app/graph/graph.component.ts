@@ -1,21 +1,29 @@
-import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {ChartOptions, ChartType, ChartDataset} from 'chart.js';
-import {NgChartsModule} from 'ng2-charts';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { ChartConfiguration, ChartType } from 'chart.js';
+import { NgChartsModule } from 'ng2-charts';
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 @Component({
   selector: 'app-graph',
   templateUrl: './graph.component.html',
   styleUrls: ['./graph.component.css'],
-  imports: [NgChartsModule],
   standalone: true,
+  imports: [NgChartsModule]
 })
 export class GraphComponent implements OnChanges {
-  @Input() constraints: any[] = [];
-  @Input() objective: any = {};
+  @Input() constraints: { type: string; coefX1: number; coefX2: number; constant: number }[] = [];
+  @Input() objective: { zx1: number; zx2: number } | null = { zx1: 0, zx2: 0 };
+  @Input() points: number[][] = [];
 
-  public chartData: ChartDataset[] = [];
-  public chartLabels: string[] = [];
-  public chartOptions: ChartOptions = {
+  public chartData: ChartConfiguration['data'] = {
+    datasets: []
+  };
+
+  public chartOptions: ChartConfiguration['options'] = {
     responsive: true,
     plugins: {
       legend: {
@@ -23,81 +31,138 @@ export class GraphComponent implements OnChanges {
       }
     },
     scales: {
-      x: { title: { display: true, text: 'x1' }, min: 0, max: 1000 }, // Aumentar limite de x
-      y: { title: { display: true, text: 'x2' }, min: 0, max: 1000 }  // Aumentar limite de y
+      x: {
+        type: 'linear',
+        position: 'bottom',
+        title: { display: true, text: 'x1' },
+        min: 0
+      },
+      y: {
+        type: 'linear',
+        position: 'left',
+        title: { display: true, text: 'x2' },
+        min: 0
+      }
     }
   };
-  public chartType: ChartType = 'line';
+
+  public chartType: ChartType = 'scatter';
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['constraints'] || changes['objective']) {
+    if (changes['constraints'] || changes['objective'] || changes['points']) {
       this.plotGraph();
     }
   }
 
   private plotGraph(): void {
-       if (!this.constraints || !Array.isArray(this.constraints) || this.constraints.length === 0) return;
-       if (!this.objective || !this.objective['zx1'] || !this.objective['zx2']) return;
-       // process data further...
-   }
+    if (!this.constraints || !Array.isArray(this.constraints) || this.constraints.length === 0) return;
+    if (!this.objective) return;
 
-  private findIntersectionPoints(constraints: any[]) {
-    const points: number[][] = [];
-    for (let i = 0; i < constraints.length; i++) {
-      for (let j = i + 1; j < constraints.length; j++) {
-        // Interseção entre duas restrições
-        const denominator = constraints[i]['coefX1'] * constraints[j]['coefX2'] -
-          constraints[j]['coefX1'] * constraints[i]['coefX2'];
-        if (denominator === 0) continue;
+    const datasets: any[] = [];
+    const allPoints: Point[] = [];
 
-        const x = (constraints[j]['coefX2'] * constraints[i]['constant'] - constraints[i]['coefX2'] * constraints[j]['constant']) / denominator;
-        const y = (constraints[i]['coefX1'] * constraints[j]['constant'] - constraints[j]['coefX1'] * constraints[i]['constant']) / denominator;
+    // Plot constraints
+    this.constraints.forEach((constraint, index) => {
+      const linePoints = this.getConstraintLine(constraint);
+      if (linePoints.length > 0) {
+        datasets.push({
+          data: linePoints,
+          label: `Restrição ${index + 1}`,
+          borderColor: this.getColor(index),
+          backgroundColor: this.getColor(index),
+          fill: false,
+          pointRadius: 0,
+          showLine: true,
+          type: 'line'
+        });
+        allPoints.push(...linePoints);
+      }
+    });
 
-        if (x >= 0 && y >= 0) {
-          points.push([x, y]);
-        }
+    // Plot objective function
+    const objectiveLine = this.getObjectiveLine(this.objective);
+    if (objectiveLine.length > 0) {
+      datasets.push({
+        data: objectiveLine,
+        label: 'Função Objetivo',
+        borderColor: 'blue',
+        backgroundColor: 'blue',
+        fill: false,
+        pointRadius: 0,
+        showLine: true,
+        type: 'line'
+      });
+      allPoints.push(...objectiveLine);
+    }
+
+    // Plot intersection points
+    if (this.points && this.points.length > 0) {
+      const pointsData = this.points.map(p => ({ x: p[0], y: p[1] }));
+      datasets.push({
+        data: pointsData,
+        label: 'Pontos de Interseção',
+        backgroundColor: 'red',
+        borderColor: 'red',
+        pointRadius: 5,
+        showLine: false,
+        type: 'scatter'
+      });
+      allPoints.push(...pointsData);
+    }
+
+    // Update chart scales
+    if (allPoints.length > 0) {
+      const xValues = allPoints.map(p => p.x);
+      const yValues = allPoints.map(p => p.y);
+      if (this.chartOptions?.scales) {
+        const scales = this.chartOptions.scales as any;
+        scales.x = {
+          ...scales.x,
+          min: 0,
+          max: Math.max(...xValues) + 1
+        };
+        scales.y = {
+          ...scales.y,
+          min: 0,
+          max: Math.max(...yValues) + 1
+        };
       }
     }
+
+    this.chartData = {
+      datasets: datasets
+    };
+  }
+
+  private getConstraintLine(constraint: { coefX1: number; coefX2: number; constant: number }): Point[] {
+    const points: Point[] = [];
+    const xIntercept = constraint.constant / constraint.coefX1;
+    const yIntercept = constraint.constant / constraint.coefX2;
+
+    if (xIntercept >= 0) points.push({ x: xIntercept, y: 0 });
+    if (yIntercept >= 0) points.push({ x: 0, y: yIntercept });
+
     return points;
   }
 
-  private getConstraintLine(constraint: any): { x: number; y: number }[] {
-    const points = [];
-    const maxX = 10; // Valor máximo no gráfico para x
-    const maxY = 10; // Valor máximo no gráfico para y
+  private getObjectiveLine(objective: { zx1: number; zx2: number }): Point[] {
+    const points: Point[] = [];
 
-    const x1Intercept = constraint['constant'] / constraint['coefX1'];
-    const x2Intercept = constraint['constant'] / constraint['coefX2'];
+    if (!this.points || this.points.length === 0) return points;
 
-    // Adicionar pontos para desenhar a linha da restrição
-    if (x1Intercept >= 0) points.push({ x: x1Intercept, y: 0 }); // Intercepto em x
-    if (x2Intercept >= 0) points.push({ x: 0, y: x2Intercept }); // Intercepto em y
+    const z = Math.max(10, Math.max(...this.points.map(p => p[0] * objective.zx1 + p[1] * objective.zx2)));
 
-    // Garantir que a linha vai até o limite do gráfico
-    const yAtMaxX = (constraint['constant'] - constraint['coefX1'] * maxX) / constraint['coefX2'];
-    if (yAtMaxX >= 0 && yAtMaxX <= maxY) points.push({ x: maxX, y: yAtMaxX });
+    if (objective.zx1 !== 0) {
+      const x = z / objective.zx1;
+      if (x >= 0) points.push({ x, y: 0 });
+    }
 
-    return points.sort((a, b) => a.x - b.x); // Ordenar pontos por `x`
-  }
+    if (objective.zx2 !== 0) {
+      const y = z / objective.zx2;
+      if (y >= 0) points.push({ x: 0, y });
+    }
 
-  private getObjectiveLine(objective: any): { x: number; y: number }[] {
-    const points = [];
-    const z = 100; // Valor arbitrário ou ajustável para Z
-    const maxX = 10; // Limite no gráfico para x
-    const maxY = 10; // Limite no gráfico para y
-
-    // Calcula interceptos nos eixos x1 e x2
-    const x1Intercept = z / objective['zx1'];
-    const x2Intercept = z / objective['zx2'];
-
-    if (x1Intercept >= 0) points.push({ x: x1Intercept, y: 0 }); // Intercepto em x
-    if (x2Intercept >= 0) points.push({ x: 0, y: x2Intercept }); // Intercepto em y
-
-    // Adicionar valor para garantir que cobre o limite do gráfico
-    const yAtMaxX = (z - maxX * objective['zx1']) / objective['zx2'];
-    if (yAtMaxX >= 0 && yAtMaxX <= maxY) points.push({ x: maxX, y: yAtMaxX });
-
-    return points.sort((a, b) => a.x - b.x); // Ordenar pontos
+    return points.sort((a, b) => a.x - b.x);
   }
 
   private getColor(index: number): string {
